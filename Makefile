@@ -1,0 +1,19 @@
+TARGET        = $(shell uname -m)
+TARGET_SOURCE = src/$(TARGET).s
+TARGET_OBJECT = src/$(TARGET).o
+
+MLX_SOURCE  = src/mlx.c
+MLX_PROGRAM = bin/mlx
+
+CFLAGS += -Wall -Werror
+
+all: $(MLX_PROGRAM)
+
+$(TARGET_OBJECT):
+	$(AS) -o $(TARGET_OBJECT) $(TARGET_SOURCE)
+
+$(MLX_PROGRAM): $(TARGET_OBJECT)
+	$(CC) -o $(MLX_PROGRAM) $(MLX_SOURCE) $(TARGET_OBJECT) $(CFLAGS)
+
+clean:
+	$(RM) $(MLX_PROGRAM) $(TARGET_OBJECT)

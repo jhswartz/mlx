@@ -1,0 +1,28 @@
+#!/bin/sh
+
+byte()
+{
+	printf $(printf "\%03o" $((0x${1})))
+}
+
+encode()
+{
+	while read line
+	do
+		set -- $line
+
+		for token
+		do
+			case $token in
+			'#')
+				break
+				;;
+			[0-f][0-f])
+				byte $token
+				;;
+			esac
+		done
+	done
+}
+
+encode

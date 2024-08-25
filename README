@@ -1,0 +1,85 @@
+MACHINE LANGUAGE EXECUTOR
+
+  Run machine code without an object file format.
+
+
+USAGE
+
+  mlx ADDRESS OFFSET PROGRAM [ARGUMENTS]
+  
+    The machine language executor maps the contents of a PROGRAM
+    file into memory at ADDRESS and calls a function that begins
+    at OFFSET. 
+  
+    If ADDRESS is 0, the kernel will select an address instead.
+
+
+DEMO 
+
+  An illustration of how to produce a crude implementation of
+  the pwd (Print Working Directory) utility for Linux/x86_64.
+
+  $ make
+  as -o src/x86_64.o src/x86_64.s
+  cc -o bin/mlx src/mlx.c src/x86_64.o -Wall -Werror
+
+  $ cat > /tmp/pwd.ml << EOF
+                # Allocate 2048 bytes on the stack.
+  48 31 f6              # xor rsi, rsi
+  66 be 00 08           # mov si, 2048
+  48 29 f4              # sub rsp, rsi
+
+                # getcwd(buffer, 2048)
+  48 89 e7              # mov rdi, rsp
+  6a 4f                 # push SYS_GETCWD
+  58                    # pop rax
+  0f 05                 # syscall
+
+                # Get the buffered string length.
+  48 31 c0              # xor rax, rax
+  48 31 c9              # xor rcx, rcx
+  48 ff c9              # dec rcx
+  f2 ae                 # repnz scasb
+  48 89 ca              # mov rdx, rcx
+  48 f7 d2              # not rdx
+
+                # Replace the NUL terminator with NL.
+  48 ff cf              # dec rdi
+  b0 0a                 # mov al, '\n'
+  88 07                 # mov [rdi], al
+
+                # write(STDOUT_FILENO, buffer, strlen(buffer))
+  48 89 e6              # mov rsi, rsp
+  6a 01                 # push STDOUT_FILENO
+  5f                    # pop rdi
+  6a 01                 # push SYS_WRITE
+  58                    # pop rax
+  0f 05                 # syscall
+
+                # Deallocate the buffer.
+  66 81 c4 00 08        # add sp, 2048
+
+                # Return EXIT_SUCCESS.
+  48 31 c0              # xor rax, rax
+  c3                    # ret
+EOF
+
+
+  $ misc/encode < /tmp/pwd.ml > /tmp/pwd
+
+  $ xxd /tmp/pwd
+  00000000: 4831 f666 be00 0848 29f4 4889 e76a 4f58  H1.f...H).H..jOX
+  00000010: 0f05 4831 c048 31c9 48ff c9f2 ae48 89ca  ..H1.H1.H....H..
+  00000020: 48f7 d248 ffcf b00a 8807 4889 e66a 015f  H..H......H..j._
+  00000030: 6a01 580f 0566 81c4 0008 4831 c0c3       j.X..f....H1..
+
+  $ bin/mlx 0 0 /tmp/pwd
+  /home/user/src/mlx
+
+  $ echo $?
+  0
+
+
+AUTHOR
+
+  Justin Swartz <justin.swartz@risingedge.co.za>
