@@ -5,9 +5,9 @@
 #include <stdlib.h>
 #include <string.h>
 
-static FILE *File;
-static void *Program;
-static size_t Size;
+static FILE *file;
+static void *program;
+static size_t size;
 
 extern int run(void *, ...);
 
@@ -42,15 +42,15 @@ static int map(void *address)
 	if (address)
 		flags |= MAP_FIXED;
 
-	if (fseek(File, 0, SEEK_END) == -1) {
+	if (fseek(file, 0, SEEK_END) == -1) {
 		perror("fseek");
 		return -1;
 	}
 
-	Size = ftell(File);
+	size = ftell(file);
 
-	Program = mmap(address, Size, prot, flags, fileno(File), 0);
-	if (Program == MAP_FAILED) {
+	program = mmap(address, size, prot, flags, fileno(file), 0);
+	if (program == MAP_FAILED) {
 		perror("mmap");
 		return -1;
 	}
@@ -60,11 +60,11 @@ static int map(void *address)
 
 static void cleanup(void)
 {
-	if (Program)
-		munmap(Program, Size);
+	if (program)
+		munmap(program, size);
 
-	if (File)
-		fclose(File);
+	if (file)
+		fclose(file);
 }
 
 int main(int argc, char *argv[], char **envp)
@@ -85,8 +85,8 @@ int main(int argc, char *argv[], char **envp)
 
 	atexit(cleanup);
 
-	File = fopen(argv[3], "r");
-	if (File == NULL) {
+	file = fopen(argv[3], "r");
+	if (file == NULL) {
 		perror("fopen");
 		return EXIT_FAILURE;
 	}
@@ -94,5 +94,5 @@ int main(int argc, char *argv[], char **envp)
 	if (map((void *)address) == -1)
 		return EXIT_FAILURE;
 
-	return run(Program + offset, argc - 3, argv + 3, envp);
+	return run(program + offset, argc - 3, argv + 3, envp);
 }
