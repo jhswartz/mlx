@@ -60,11 +60,11 @@ static int map(void *address)
 
 static void cleanup(void)
 {
-	if (File)
-		fclose(File);
-
 	if (Program)
 		munmap(Program, Size);
+
+	if (File)
+		fclose(File);
 }
 
 int main(int argc, char *argv[], char **envp)
